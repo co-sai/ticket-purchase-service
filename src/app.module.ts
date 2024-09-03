@@ -15,6 +15,7 @@ import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { AllExceptionsFilter } from './utils/all-exceptions.filter';
 import { LoggerMiddleware } from './utils/logger.middleware';
 import { AuthModule } from './auth/auth.module';
+import { EventModule } from './event/event.module';
 
 @Module({
     imports: [
@@ -37,6 +38,7 @@ import { AuthModule } from './auth/auth.module';
 
         UserModule,
         AuthModule,
+        EventModule,
     ],
     controllers: [AppController],
     providers: [
@@ -45,6 +47,7 @@ import { AuthModule } from './auth/auth.module';
             provide: APP_PIPE,
             useValue: new ValidationPipe({
                 whitelist: true,
+                transform: true
             }),
         },
         {

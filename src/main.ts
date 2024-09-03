@@ -6,6 +6,7 @@ import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.int
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { AllExceptionsFilter } from './utils/all-exceptions.filter';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);

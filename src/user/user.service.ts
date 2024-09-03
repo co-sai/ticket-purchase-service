@@ -9,15 +9,17 @@ const scrypt = promisify(_scrypt);
 
 @Injectable()
 export class UserService {
-    constructor(
-        @InjectModel(User.name) private userModel: Model<User>,
-    ){}
+    constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
     async findByEmail(email: string) {
         const user = await this.userModel
             .findOne({ email: email.toLowerCase() })
             .exec();
         return user;
+    }
+
+    async findById(id: string){
+        return await this.userModel.findById(id).exec();
     }
 
     async signUp(body: CreateUserDto): Promise<User> {
@@ -37,7 +39,9 @@ export class UserService {
     }
 
     async signIn(body: { email: string; password: string }) {
-        const user = await this.userModel.findOne({ email: body.email.toLowerCase() });
+        const user = await this.userModel.findOne({
+            email: body.email.toLowerCase(),
+        });
 
         if (!user) {
             throw new InternalServerErrorException(
@@ -50,7 +54,9 @@ export class UserService {
         const hash = (await scrypt(body.password, salt, 32)) as Buffer;
 
         if (storedHash !== hash.toString('hex')) {
-            throw new InternalServerErrorException("Invalid credentials. Please try again.");
+            throw new InternalServerErrorException(
+                'Invalid credentials. Please try again.',
+            );
         }
         return user;
     }
