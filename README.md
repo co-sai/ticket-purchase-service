@@ -23,9 +23,12 @@
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
 
+
 ## Description
 Ticket Purchase Service
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+
+This project was developed using **Node.js** with the **NestJS** framework and used **MongoDB** as the backend database.
 
 ## Installation
 
