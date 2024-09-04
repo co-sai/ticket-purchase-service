@@ -43,6 +43,12 @@ $ yarn install
 
 $ yarn start:dev
 ```
+## Test
+
+```bash
+# unit tests
+$ yarn test
+```
 
 ## Project Documentation
 

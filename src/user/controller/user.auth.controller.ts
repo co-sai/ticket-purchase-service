@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import { UserService } from '../user.service';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { AuthService } from 'src/auth/auth.service';
-import { PurchaseService } from 'src/event/service/purchase.service';
+import { AuthService } from '../../auth/auth.service';
+import { PurchaseService } from '../../event/service/purchase.service';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('User Authentication API')
