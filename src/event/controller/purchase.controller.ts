@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, InternalServerErrorException, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, InternalServerErrorException, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { EventService } from '../service/event.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RequestInterface } from 'src/auth/interface/request.interface';
@@ -6,7 +6,9 @@ import { UserService } from 'src/user/user.service';
 import { Public } from 'src/auth/decorators/public.decorators';
 import { PurchaseService } from '../service/purchase.service';
 import mongoose from 'mongoose';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Purchase API')
 @Controller({ path: "purchase", version: "1" })
 @UseGuards(JwtAuthGuard)
 export class PurchaseController {
@@ -17,6 +19,10 @@ export class PurchaseController {
     ) { }
 
     @Get("/history")
+    @HttpCode(200)
+    @ApiBearerAuth("access-token")
+    @ApiOperation({ summary: 'Purchase History List' })
+    @ApiResponse({ status: 200 })
     async purchaseHistory(
         @Request() req: RequestInterface,
         @Query() query: { page: string, limit: string }
@@ -37,6 +43,23 @@ export class PurchaseController {
     }
 
     @Post("/add")
+    @HttpCode(201)
+    @ApiBearerAuth("access-token")
+    @ApiOperation({ summary: 'Purchase Ticket' })
+    @ApiBody({
+        description: 'Purchase Ticket data',
+        required: true,
+        examples: {
+            example1: {
+                summary: 'Purchase Ticket example',
+                value: {
+                    ticket_id: 'ticket _id',
+                    quantity: 10,
+                },
+            },
+        },
+    })
+    @ApiResponse({ status: 201 })
     async addTicketToPurchase(
         @Request() req: RequestInterface,
         @Body() body: { ticket_id: string, quantity: number }

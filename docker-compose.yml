@@ -7,14 +7,13 @@ services:
       - '8000:8000'
     depends_on:
       - mongo
-    environment:
-      MONGODB_URI: mongodb://mongo:27017/ticket
-      NODE_ENV: production
+    # environment:
+    #   MONGODB_URI: mongodb://mongo:27017/ticket
+    #   NODE_ENV: production
     env_file:
       - ./.env.development
     volumes:
       - .:/app
-    command: npm run start:prod
 
   mongo:
     image: mongo:6.0

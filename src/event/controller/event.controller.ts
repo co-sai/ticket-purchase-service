@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, InternalServerErrorException, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, InternalServerErrorException, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { EventService } from '../service/event.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateEventDto } from '../dto/create-event.dto';
@@ -8,7 +8,9 @@ import { UpdateEventDto } from '../dto/update-event.dto';
 import { Public } from 'src/auth/decorators/public.decorators';
 import * as moment from 'moment';
 import { PurchaseService } from '../service/purchase.service';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Event API')
 @Controller({ path: "event", version: "1" })
 @UseGuards(JwtAuthGuard)
 export class EventController {
@@ -18,7 +20,11 @@ export class EventController {
         private readonly purchaseService: PurchaseService
     ) { }
 
+    @Public()
     @Get("list")
+    @HttpCode(200)
+    @ApiOperation({ summary: 'Event List' })
+    @ApiResponse({ status: 200 })
     async getAllEvent(
         @Query() query: { page: string; limit: string },
     ) {
@@ -39,8 +45,26 @@ export class EventController {
 
     @Public()
     @Get("/search")
+    @HttpCode(200)
+    @ApiOperation({ summary: 'Filter Event by "name"' })
+    @ApiQuery({
+        name: 'page',
+        required: false,
+        description: 'Page number for pagination',
+    })
+    @ApiQuery({
+        name: 'limit',
+        required: false,
+        description: 'Limit the number of results',
+    })
+    @ApiQuery({
+        name: 'q',
+        required: false,
+        description: 'Search term',
+    })
+    @ApiResponse({ status: 200 })
     async filterEventByName(
-        @Query() query: { page: string, limit: string, q?: string, venue?: string, date?: string, startTime?: string, endTime?: string }
+        @Query() query: { page: string, limit: string, q?: string }
     ) {
         const q = query.q ? query.q.trim() : '';
 
@@ -72,6 +96,11 @@ export class EventController {
     }
 
     @Post("add")
+    @HttpCode(201)
+    @ApiBearerAuth("access-token")
+    @ApiOperation({ summary: 'Event Create' })
+    @ApiBody({ type: CreateEventDto })
+    @ApiResponse({ status: 201 })
     async createEvent(
         @Body() body: CreateEventDto,
         @Request() req: RequestInterface
@@ -92,6 +121,9 @@ export class EventController {
 
     @Public()
     @Get("/:id")
+    @HttpCode(200)
+    @ApiOperation({ summary: 'Event Detail' })
+    @ApiResponse({ status: 200 })
     async eventDetail(
         @Param("id") id: string
     ) {
@@ -105,6 +137,13 @@ export class EventController {
     }
 
     @Patch("/:id")
+    @HttpCode(200)
+    @ApiBearerAuth('access-token')
+    @ApiOperation({ summary: 'Update Event' })
+    @ApiBody({ type: UpdateEventDto })
+    @ApiResponse({
+        status: 200,
+    })
     async updateEvent(
         @Param("id") id: string,
         @Request() req: RequestInterface,
@@ -126,6 +165,12 @@ export class EventController {
     }
 
     @Delete("/:id")
+    @HttpCode(200)
+    @ApiBearerAuth('access-token')
+    @ApiOperation({ summary: 'Delete Event' })
+    @ApiResponse({
+        status: 200,
+    })
     async deleteEvent(
         @Param("id") id: string,
         @Request() req: RequestInterface,

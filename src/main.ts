@@ -2,11 +2,11 @@ import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { AllExceptionsFilter } from './utils/all-exceptions.filter';
-import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
@@ -45,6 +45,19 @@ async function bootstrap() {
 
     // Set a global prefix for all routes
     app.setGlobalPrefix('api/v1');
+
+    const config = new DocumentBuilder()
+        .setTitle('Ticket Purchase Service API Documentation')
+        .setDescription('')
+        .setVersion('1.0')
+        .addBearerAuth(
+            { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+            'access-token',
+        )
+        .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
 
     await app.listen(8000);
 }

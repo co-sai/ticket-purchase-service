@@ -22,6 +22,7 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
+
 ## Description
 Ticket Purchase Service
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
@@ -29,36 +30,18 @@ Ticket Purchase Service
 ## Installation
 
 ```bash
-$ npm install
+$ yarn install
 ```
 
 ## Running the app
 
 ```bash
 # development
-$ npm run start
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+$ yarn start:dev
 ```
 
-## Test
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Documentation
+## Project Documentation
 
 ```bash
 # install compodoc package
@@ -68,16 +51,17 @@ $ npm i -D @compodoc/compodoc
 $ npx @compodoc/compodoc -p tsconfig.json -s
 ```
 
-## Support
+## API Documentation
+[Documentation](http://localhost:8000/api#/)
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
 
-## Stay in touch
+## Environment Variables
 
-- Author - [Co-Sai]
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+To run this project, you will need to add the following environment variables to your 
+#### .env.development file
 
-## License
+`SECRET_KEY`
 
-Nest is [MIT licensed](LICENSE).
+`JWT_EXPIRES_IN`
+
+`MONGODB_URI`

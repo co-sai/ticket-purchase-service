@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, InternalServerErrorException, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, InternalServerErrorException, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { EventService } from '../service/event.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RequestInterface } from 'src/auth/interface/request.interface';
@@ -6,7 +6,9 @@ import { UserService } from 'src/user/user.service';
 import { CreateTicketDto } from '../dto/create-ticket.dto';
 import { UpdateTicketDto } from '../dto/update-ticket.dto';
 import { PurchaseService } from '../service/purchase.service';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Ticket API')
 @Controller({ path: "ticket", version: "1" })
 @UseGuards(JwtAuthGuard)
 export class TicketController {
@@ -17,6 +19,11 @@ export class TicketController {
     ) { }
 
     @Post("/add")
+    @HttpCode(201)
+    @ApiBearerAuth("access-token")
+    @ApiOperation({ summary: 'Create Ticket' })
+    @ApiBody({ type: CreateTicketDto })
+    @ApiResponse({ status: 201 })
     async addTicket(
         @Request() req: RequestInterface,
         @Body() body: CreateTicketDto
@@ -33,10 +40,17 @@ export class TicketController {
     }
 
     @Patch("/:id")
+    @HttpCode(200)
+    @ApiBearerAuth('access-token')
+    @ApiOperation({ summary: 'Update Ticket' })
+    @ApiBody({ type: UpdateTicketDto })
+    @ApiResponse({
+        status: 200,
+    })
     async updateTicket(
         @Param("id") id: string,
         @Request() req: RequestInterface,
-        @Body() body: Partial<UpdateTicketDto>
+        @Body() body: UpdateTicketDto
     ) {
         const ticket: any = await this.eventService.findTicketById(id);
 
@@ -53,6 +67,12 @@ export class TicketController {
     }
 
     @Delete("/:id")
+    @HttpCode(200)
+    @ApiBearerAuth('access-token')
+    @ApiOperation({ summary: 'Delete Ticket' })
+    @ApiResponse({
+        status: 200,
+    })
     async deleteTicket(
         @Param("id") id: string,
         @Request() req: RequestInterface,
@@ -61,8 +81,8 @@ export class TicketController {
 
         // Ticket Deletion with Restrict
         const purchaseItem = await this.purchaseService.findOneByTicketId(id);
-        
-        if(purchaseItem){
+
+        if (purchaseItem) {
             throw new InternalServerErrorException("Cannot delete ticket as it has been purchased by users.");
         }
 
