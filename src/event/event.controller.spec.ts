@@ -55,7 +55,9 @@ describe("Event Controller", () => {
                         filterEvents: jest.fn(), // Mock the filterEvents method,
                         findAll: jest.fn(),
                         createEvent: jest.fn(),
-                        eventDetail: jest.fn()
+                        eventDetail: jest.fn(),
+                        findById: jest.fn(),
+                        findByIdAndUpdate: jest.fn()
                     },
                 }
 
@@ -231,6 +233,98 @@ describe("Event Controller", () => {
         );
         expect(eventService.eventDetail).toHaveBeenCalledWith(eventId);
 
+    })
+
+    describe("updateEvent", () => {
+        it("should throw an error on event update if the event was not found.", async () => {
+            const mockEventUpdate: any = {
+                name: "Event",
+                date: "2029-09-08",
+                time: "10:12 AM",
+                venue: "Myanmar"
+            }
+            const eventId = "1";
+            const mockRequest = {
+                user: { _id: '1' },
+            } as any;
+
+            jest.spyOn(eventService, "findById").mockResolvedValue(null);
+
+            await expect(eventController.updateEvent(eventId, mockRequest, mockEventUpdate)).rejects.toThrow(
+                new InternalServerErrorException("Event not found.")
+            );
+            expect(eventService.findById).toHaveBeenCalledWith(eventId);
+        })
+
+        it('should update the event successfully', async () => {
+            const eventId = 'event123';
+            const userId = 'user123';
+            const body: any = {
+                // Populate with necessary properties
+                name: "event",
+                date: "2029-09-09",
+                time: "10:09 PM",
+                venue: "Yangon"
+            };
+
+            const req: any = {
+                user: { _id: userId },
+            } as any;
+
+            const mockEvent: any = {
+                _id: eventId,
+                user_id: userId,
+                // other event properties
+            };
+
+            const mockUpdatedEvent: any = {
+                ...mockEvent,
+                ...body,
+            };
+
+            jest.spyOn(eventService, 'findById').mockResolvedValue(mockEvent);
+            jest.spyOn(eventService, 'findByIdAndUpdate').mockResolvedValue(mockUpdatedEvent);
+
+            const result = await eventController.updateEvent(eventId, req, body);
+
+            expect(eventService.findById).toHaveBeenCalledWith(eventId);
+            expect(eventService.findByIdAndUpdate).toHaveBeenCalledWith(eventId, body);
+            expect(result).toEqual({
+                message: 'Event has been updated.',
+                data: mockUpdatedEvent,
+            });
+        });
+
+        it("should throw an error if the user is not the owner of the event", async () => {
+            const eventId = 'event123';
+            const userId = 'user123';
+            const body: any = {
+                // Populate with necessary properties
+                name: "event",
+                date: "2029-09-09",
+                time: "10:09 PM",
+                venue: "Yangon"
+            };
+
+            const req: any = {
+                user: { _id: userId },
+            } as any;
+
+            const mockEvent: any = {
+                _id: eventId,
+                user_id: "user1234",
+                // other event properties
+            };
+
+            jest.spyOn(eventService, 'findById').mockResolvedValue(mockEvent);
+
+            await expect(eventController.updateEvent(eventId, req, body)).rejects.toThrow(
+                new InternalServerErrorException('Event not found.'),
+            );
+
+            expect(eventService.findById).toHaveBeenCalledWith(eventId);
+            expect(eventService.findByIdAndUpdate).not.toHaveBeenCalled();
+        })
     })
 
 })
