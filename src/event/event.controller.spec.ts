@@ -11,16 +11,19 @@ import { Ticket } from './schema/ticket.schema';
 import { Purchase } from './schema/purchase.schema';
 import { PurchaseItem } from './schema/purchase-item.schema';
 import { InternalServerErrorException } from '@nestjs/common';
+import { TicketController } from './controller/ticket.controller';
 
 describe("Event Controller", () => {
     let eventController: EventController;
+    let ticketController: TicketController;
     let eventService: EventService;
     let userService: UserService;
+
     let purchaseService: PurchaseService;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-            controllers: [EventController],
+            controllers: [EventController, TicketController],
             providers: [
                 EventService,
                 {
@@ -47,7 +50,9 @@ describe("Event Controller", () => {
                 },
                 {
                     provide: PurchaseService,
-                    useValue: {}, // Mock PurchaseService if necessary
+                    useValue: {
+                        findOneByTicketId: jest.fn()
+                    }, // Mock PurchaseService if necessary
                 },
                 {
                     provide: EventService,
@@ -57,7 +62,13 @@ describe("Event Controller", () => {
                         createEvent: jest.fn(),
                         eventDetail: jest.fn(),
                         findById: jest.fn(),
-                        findByIdAndUpdate: jest.fn()
+                        findByIdAndUpdate: jest.fn(),
+
+                        // ticket service
+                        createTicket: jest.fn(),
+                        findTicketById: jest.fn(),
+                        updateTicket: jest.fn(),
+                        deleteTicket: jest.fn()
                     },
                 }
 
@@ -65,6 +76,8 @@ describe("Event Controller", () => {
         }).compile();
 
         eventController = module.get<EventController>(EventController);
+        ticketController = module.get<TicketController>(TicketController);
+
         eventService = module.get<EventService>(EventService);
         userService = module.get<UserService>(UserService);
         purchaseService = module.get<PurchaseService>(PurchaseService);
@@ -326,5 +339,257 @@ describe("Event Controller", () => {
             expect(eventService.findByIdAndUpdate).not.toHaveBeenCalled();
         })
     })
+
+    describe("Ticket Controller", () => {
+        it("should throw an error if event not found", async () => {
+            const mockTicket: any = {
+                event_id: "event123",
+                category: "VIP",
+                price: 1000,
+                available_ticket: 20
+            }
+            const req = {
+                user: { _id: '1' },
+            } as any;
+
+            jest.spyOn(eventService, "findById").mockResolvedValue(null);
+            await expect(ticketController.addTicket(req, mockTicket)).rejects.toThrow(
+                new InternalServerErrorException("You are not allowed to create ticket.")
+            );
+            expect(eventService.findById).toHaveBeenCalledWith(mockTicket.event_id);
+        })
+
+        it("should throw an error if the user is not the owner of the event", async () => {
+            const mockTicket: any = {
+                event_id: "event123",
+                category: "VIP",
+                price: 1000,
+                available_ticket: 20
+            }
+            const req = {
+                user: { _id: '1' },
+            } as any;
+
+            const mockEvent: any = {
+                event_id: "event123",
+                user_id: "2"
+            }
+
+            jest.spyOn(eventService, "findById").mockResolvedValue(mockEvent);
+
+            await expect(ticketController.addTicket(req, mockTicket)).rejects.toThrow(
+                new InternalServerErrorException("You are not allowed to create ticket.")
+            )
+            expect(eventService.findById).toHaveBeenCalledWith(mockTicket.event_id);
+        })
+
+        it("should create an ticket", async () => {
+            const body: any = {
+                event_id: "event123",
+                category: "VIP",
+                price: 1000,
+                available_ticket: 20
+            }
+            const req = {
+                user: { _id: '1' },
+            } as any;
+
+            const mockEvent: any = {
+                event_id: "event123",
+                user_id: "1"
+            }
+
+            const mockTicket: any = {
+                ...body
+            }
+
+            jest.spyOn(eventService, "findById").mockResolvedValue(mockEvent);
+            jest.spyOn(eventService, "createTicket").mockResolvedValue(mockTicket);
+
+            const result = await ticketController.addTicket(req, body);
+
+            expect(eventService.createTicket).toHaveBeenCalledWith(body);
+            expect(result).toEqual({
+                data: body
+            })
+
+        })
+
+        describe("Update Ticket", () => {
+            it("should throw an error if ticket not found.", async () => {
+                const ticket_id = "ticket123";
+                const user_id = "user123";
+                const body: any = {
+                    event_id: "event123",
+                    category: "VIP",
+                    price: 1000,
+                    available_ticket: 20
+                }
+                const req: any = {
+                    user: { _id: user_id },
+                } as any;
+
+                jest.spyOn(eventService, "findTicketById").mockResolvedValue(null);
+                await expect(ticketController.updateTicket(ticket_id, req, body)).rejects.toThrow(
+                    new InternalServerErrorException("Ticket not found.")
+                )
+            })
+
+            it("should throw an error if user doesn't own the ticket", async () => {
+                const ticket_id = "ticket123";
+                const user_id = "user123";
+                const body: any = {
+                    event_id: "event123",
+                    category: "VIP",
+                    price: 1000,
+                    available_ticket: 20
+                }
+                const req: any = {
+                    user: { _id: user_id },
+                } as any;
+
+                const mockTicket: any = {
+                    event_id: {
+                        user_id: {
+                            _id: "user12345678"
+                        }
+                    }
+                }
+                jest.spyOn(eventService, "findTicketById").mockResolvedValue(mockTicket);
+
+                await expect(ticketController.updateTicket(ticket_id, req, body)).rejects.toThrow(
+                    new InternalServerErrorException('Ticket not found.'),
+                );
+
+                expect(eventService.findTicketById).toHaveBeenCalledWith(ticket_id);
+            });
+
+            it("should update ticket", async () => {
+                const ticket_id = "ticket123";
+                const user_id = "user123";
+                const body: any = {
+                    event_id: "event123",
+                    category: "VIP",
+                    price: 1000,
+                    available_ticket: 20
+                }
+                const req: any = {
+                    user: { _id: user_id },
+                } as any;
+
+                const mockTicket: any = {
+                    event_id: {
+                        user_id: {
+                            _id: user_id
+                        }
+                    }
+                }
+                const mockUpdatedTicket: any = {
+                    ...body,
+                    price: 2000
+                }
+
+                jest.spyOn(eventService, "findTicketById").mockResolvedValue(mockTicket);
+                jest.spyOn(eventService, "updateTicket").mockResolvedValue(mockUpdatedTicket);
+
+                const result = await ticketController.updateTicket(ticket_id, req, body);
+                
+                expect(eventService.findTicketById).toHaveBeenCalledWith(ticket_id);
+                expect(eventService.updateTicket).toHaveBeenCalledWith(ticket_id, body);
+                expect(result).toEqual({
+                    message: "Ticket has been updated.",
+                    data: mockUpdatedTicket
+                })
+            })
+        });
+
+        describe("Delete Ticket", ()=>{
+            it("should throw an error if ticket has been purchased by users.", async()=>{
+                const ticket_id = "ticket123";
+                const req: any = {
+                    user: {
+                        _id: "user123"
+                    }
+                };
+
+                jest.spyOn(eventService, "findTicketById").mockResolvedValue({} as any);
+                jest.spyOn(purchaseService, "findOneByTicketId").mockResolvedValue({} as any);
+
+                await expect(ticketController.deleteTicket(ticket_id, req)).rejects.toThrow(
+                    new InternalServerErrorException("Cannot delete ticket as it has been purchased by users.")
+                );
+                expect(eventService.findTicketById).toHaveBeenCalledWith(ticket_id);
+                expect(purchaseService.findOneByTicketId).toHaveBeenCalledWith(ticket_id);
+            })
+
+            it("should throw an error if ticket not found.", async()=>{
+                const ticket_id = "ticket123";
+                const req: any = {
+                    user: {
+                        _id: "user123"
+                    }
+                };
+
+                jest.spyOn(eventService, "findTicketById").mockResolvedValue(null);
+                jest.spyOn(purchaseService, "findOneByTicketId").mockResolvedValue(null);
+
+                await expect(ticketController.deleteTicket(ticket_id, req)).rejects.toThrow(
+                    new InternalServerErrorException("Ticket not found.")
+                );
+                expect(eventService.findTicketById).toHaveBeenCalledWith(ticket_id);
+                expect(purchaseService.findOneByTicketId).toHaveBeenCalledWith(ticket_id);
+            })
+
+            it("should throw an error if user doesn't own the ticket", async()=>{
+                const ticket_id = "ticket123";
+                const req: any = {
+                    user: {
+                        _id: "user123"
+                    }
+                };
+                const mockTicket : any = {
+                    event_id: {
+                        user_id: { _id : "user1234567"}
+                    }
+                }
+
+                jest.spyOn(eventService, "findTicketById").mockResolvedValue(mockTicket);
+                jest.spyOn(purchaseService, "findOneByTicketId").mockResolvedValue(null);
+
+                await expect(ticketController.deleteTicket(ticket_id, req)).rejects.toThrow(
+                    new InternalServerErrorException("Ticket not found.")
+                );
+                expect(eventService.findTicketById).toHaveBeenCalledWith(ticket_id);
+                expect(purchaseService.findOneByTicketId).toHaveBeenCalledWith(ticket_id);
+            })
+
+            it("should delete ticket", async()=>{
+                const ticket_id = "ticket123";
+                const req: any = {
+                    user: {
+                        _id: "user123"
+                    }
+                };
+                const mockTicket : any = {
+                    event_id: {
+                        user_id: { _id : "user123"}
+                    }
+                }
+
+                jest.spyOn(eventService, "findTicketById").mockResolvedValue(mockTicket);
+                jest.spyOn(purchaseService, "findOneByTicketId").mockResolvedValue(null);
+                jest.spyOn(eventService, "deleteTicket").mockResolvedValue(null);
+
+                const result = await ticketController.deleteTicket(ticket_id, req);
+                
+                expect(eventService.findTicketById).toHaveBeenCalledWith(ticket_id);
+                expect(purchaseService.findOneByTicketId).toHaveBeenCalledWith(ticket_id);
+                expect(eventService.deleteTicket).toHaveBeenCalledWith(ticket_id);
+                expect(result).toEqual({
+                    message: "Ticket has been deleted."
+                })
+            })
+        });
+    });
 
 })

@@ -11,11 +11,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './utils/logger.config';
-import { APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { AllExceptionsFilter } from './utils/all-exceptions.filter';
 import { LoggerMiddleware } from './utils/logger.middleware';
 import { AuthModule } from './auth/auth.module';
 import { EventModule } from './event/event.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
     imports: [
@@ -34,7 +35,11 @@ import { EventModule } from './event/event.module';
             inject: [ConfigService],
         }),
         WinstonModule.forRoot(winstonConfig),
-        // Serve the 'uploads' folder statically
+
+        // ThrottlerModule.forRoot([{
+        //     ttl: 5000,
+        //     limit: 5,
+        // }]),
 
         UserModule,
         AuthModule,
@@ -54,6 +59,11 @@ import { EventModule } from './event/event.module';
             provide: APP_FILTER,
             useClass: AllExceptionsFilter,
         },
+        // {
+        //     provide: APP_GUARD,
+        //     useClass: ThrottlerGuard
+        // }
+
     ],
 })
 export class AppModule implements NestModule {
