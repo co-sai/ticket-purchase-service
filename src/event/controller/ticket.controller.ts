@@ -1,8 +1,12 @@
 import { Body, Controller, Delete, HttpCode, InternalServerErrorException, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { EventService } from '../service/event.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { RequestInterface } from 'src/auth/interface/request.interface';
-import { UserService } from 'src/user/user.service';
+// import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+
+// import { RequestInterface } from 'src/auth/interface/request.interface';
+import { RequestInterface } from '../../auth/interface/request.interface';
+// import { UserService } from 'src/user/user.service';
+import { UserService } from '../../user/user.service';
 import { CreateTicketDto } from '../dto/create-ticket.dto';
 import { UpdateTicketDto } from '../dto/update-ticket.dto';
 import { PurchaseService } from '../service/purchase.service';

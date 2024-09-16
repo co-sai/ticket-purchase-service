@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserAuthController } from './controller/user.auth.controller';
 import { UserService } from './user.service';
 import { AuthService } from '../auth/auth.service';
-import { PurchaseService } from '../event/service/purchase.service';
+import { PurchaseService } from 'src/event/service/purchase.service';
 import { InternalServerErrorException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { getModelToken } from '@nestjs/mongoose';
