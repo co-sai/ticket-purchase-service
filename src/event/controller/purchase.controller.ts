@@ -67,6 +67,10 @@ export class PurchaseController {
         const user_id = req.user._id;
         const ticket = await this.eventService.findTicketById(body.ticket_id);
 
+        if (!ticket) {
+            throw new InternalServerErrorException("Ticket not found.");
+        }
+
         // Find existing purchase table of user.
         let purchase = await this.purchaseService.findPurchaseByUserId(user_id);
 
@@ -74,14 +78,11 @@ export class PurchaseController {
             purchase = await this.purchaseService.createEmptyPurchase(user_id);
         }
 
-        if (!ticket) {
-            throw new InternalServerErrorException("Ticket not found.");
-        }
-
         const existingPurchaseItem = await this.purchaseService.findExistingPurchaseItems(user_id, body.ticket_id);
 
         if (existingPurchaseItem) {
             // Check if the ticket has enough stock for the additional quantity
+
             const newQuantity = body.quantity;
             if (newQuantity > ticket.available_ticket) {
 

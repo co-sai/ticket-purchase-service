@@ -12,20 +12,22 @@ import { Purchase } from './schema/purchase.schema';
 import { PurchaseItem } from './schema/purchase-item.schema';
 import { InternalServerErrorException } from '@nestjs/common';
 import { TicketController } from './controller/ticket.controller';
+import { PurchaseController } from './controller/purchase.controller';
 
 describe("Event Controller", () => {
     let eventController: EventController;
     let ticketController: TicketController;
+    let purchaseController: PurchaseController;
+
     let eventService: EventService;
     let userService: UserService;
-
     let purchaseService: PurchaseService;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-            controllers: [EventController, TicketController],
+            controllers: [EventController, TicketController, PurchaseController],
             providers: [
-                EventService,
+                EventService, PurchaseService,
                 {
                     provide: getModelToken(Event.name),
                     useValue: jest.fn(),
@@ -51,7 +53,14 @@ describe("Event Controller", () => {
                 {
                     provide: PurchaseService,
                     useValue: {
-                        findOneByTicketId: jest.fn()
+                        findOneByTicketId: jest.fn(),
+                        findTicketById: jest.fn(),
+                        findHistoryByUserId: jest.fn(),
+                        findPurchaseByUserId: jest.fn(),
+                        createEmptyPurchase: jest.fn(),
+                        findExistingPurchaseItems: jest.fn(),
+                        createPurchaseItem: jest.fn(),
+                        calculateTotalPrice: jest.fn()
                     }, // Mock PurchaseService if necessary
                 },
                 {
@@ -77,6 +86,7 @@ describe("Event Controller", () => {
 
         eventController = module.get<EventController>(EventController);
         ticketController = module.get<TicketController>(TicketController);
+        purchaseController = module.get<PurchaseController>(PurchaseController);
 
         eventService = module.get<EventService>(EventService);
         userService = module.get<UserService>(UserService);
@@ -493,7 +503,7 @@ describe("Event Controller", () => {
                 jest.spyOn(eventService, "updateTicket").mockResolvedValue(mockUpdatedTicket);
 
                 const result = await ticketController.updateTicket(ticket_id, req, body);
-                
+
                 expect(eventService.findTicketById).toHaveBeenCalledWith(ticket_id);
                 expect(eventService.updateTicket).toHaveBeenCalledWith(ticket_id, body);
                 expect(result).toEqual({
@@ -503,8 +513,8 @@ describe("Event Controller", () => {
             })
         });
 
-        describe("Delete Ticket", ()=>{
-            it("should throw an error if ticket has been purchased by users.", async()=>{
+        describe("Delete Ticket", () => {
+            it("should throw an error if ticket has been purchased by users.", async () => {
                 const ticket_id = "ticket123";
                 const req: any = {
                     user: {
@@ -522,7 +532,7 @@ describe("Event Controller", () => {
                 expect(purchaseService.findOneByTicketId).toHaveBeenCalledWith(ticket_id);
             })
 
-            it("should throw an error if ticket not found.", async()=>{
+            it("should throw an error if ticket not found.", async () => {
                 const ticket_id = "ticket123";
                 const req: any = {
                     user: {
@@ -540,16 +550,16 @@ describe("Event Controller", () => {
                 expect(purchaseService.findOneByTicketId).toHaveBeenCalledWith(ticket_id);
             })
 
-            it("should throw an error if user doesn't own the ticket", async()=>{
+            it("should throw an error if user doesn't own the ticket", async () => {
                 const ticket_id = "ticket123";
                 const req: any = {
                     user: {
                         _id: "user123"
                     }
                 };
-                const mockTicket : any = {
+                const mockTicket: any = {
                     event_id: {
-                        user_id: { _id : "user1234567"}
+                        user_id: { _id: "user1234567" }
                     }
                 }
 
@@ -563,16 +573,16 @@ describe("Event Controller", () => {
                 expect(purchaseService.findOneByTicketId).toHaveBeenCalledWith(ticket_id);
             })
 
-            it("should delete ticket", async()=>{
+            it("should delete ticket", async () => {
                 const ticket_id = "ticket123";
                 const req: any = {
                     user: {
                         _id: "user123"
                     }
                 };
-                const mockTicket : any = {
+                const mockTicket: any = {
                     event_id: {
-                        user_id: { _id : "user123"}
+                        user_id: { _id: "user123" }
                     }
                 }
 
@@ -581,7 +591,7 @@ describe("Event Controller", () => {
                 jest.spyOn(eventService, "deleteTicket").mockResolvedValue(null);
 
                 const result = await ticketController.deleteTicket(ticket_id, req);
-                
+
                 expect(eventService.findTicketById).toHaveBeenCalledWith(ticket_id);
                 expect(purchaseService.findOneByTicketId).toHaveBeenCalledWith(ticket_id);
                 expect(eventService.deleteTicket).toHaveBeenCalledWith(ticket_id);
@@ -591,5 +601,188 @@ describe("Event Controller", () => {
             })
         });
     });
+
+    describe("Purchase Controller", () => {
+        it("should return purchase history", async () => {
+            const query = { page: "1", limit: "20" };
+            const user_id = "user123"
+            const req = {
+                user: { _id: user_id }
+            } as any;
+
+            const mockHistory = [
+                {
+                    _id: '66d6cf1ac4e8a50c0ead7877',
+                    user_id: '66d6cf1ac4e8a50c0ead7875',
+                    purchase_items: [
+                        {
+                            _id: '66d6d034c4e8a50c0ead78a1',
+                            ticket_id: '66d6cfa2c4e8a50c0ead7888',
+                            user_id: '66d6cf1ac4e8a50c0ead7875',
+                            quantity: 5,
+                            unit_price: 10000,
+                            total_price: 50000,
+                            purchase_date: '2024-09-03T09:00:36.709Z',
+                            createdAt: '2024-09-03T09:00:36.710Z',
+                            updatedAt: '2024-09-03T09:00:36.710Z',
+                            __v: 0,
+                        },
+                    ],
+                    total_price: 200000,
+                    createdAt: '2024-09-03T08:55:54.127Z',
+                    updatedAt: '2024-09-03T09:01:16.701Z',
+                    __v: 4,
+                },
+            ];
+
+            jest.spyOn(userService, "findById").mockResolvedValue({} as any);
+            jest.spyOn(purchaseService, "findHistoryByUserId").mockResolvedValue(mockHistory as any);
+
+            const result = await purchaseController.purchaseHistory(req, query);
+
+            expect(userService.findById).toHaveBeenCalledWith(user_id);
+            expect(purchaseService.findHistoryByUserId).toHaveBeenCalledWith(user_id, +query.page, +query.limit);
+            expect(result).toEqual({
+                data: mockHistory
+            })
+
+        })
+
+        it("should throw an error if user account not found", async () => {
+            const query = { page: "1", limit: "20" };
+            const user_id = "user123"
+            const req = {
+                user: { _id: user_id }
+            } as any;
+
+            jest.spyOn(userService, "findById").mockResolvedValue(null);
+
+            await expect(purchaseController.purchaseHistory(req, query)).rejects.toThrow(
+                new InternalServerErrorException("Account not found.")
+            )
+            expect(userService.findById).toHaveBeenCalledWith(user_id);
+        })
+    })
+
+    describe("Purchase Ticket", () => {
+        it("should throw an error if ticket was not found", async () => {
+            const user_id = "user123";
+            const req: any = {
+                user: { _id: user_id }
+            }
+            const body = { ticket_id: "ticket123", quantity: 5 };
+
+            jest.spyOn(eventService, "findTicketById").mockResolvedValue(null);
+
+            await expect(purchaseController.addTicketToPurchase(req, body)).rejects.toThrow(
+                new InternalServerErrorException("Ticket not found.")
+            )
+
+            expect(eventService.findTicketById).toHaveBeenCalledWith(body.ticket_id);
+        })
+
+        it("assume has existing purchase item and should throw an error if Not enough ticket available", async () => {
+            const user_id = "user123";
+            const req: any = {
+                user: { _id: user_id }
+            }
+            const body = { ticket_id: "ticket123", quantity: 50 };
+            const mockTicket = {
+                _id: "ticket123",
+                event_id: {
+                    _id: "event123",
+                    user_id: {
+                        _id: user_id,
+                        name: "user name"
+                    }
+                },
+                category: 'VIP',
+                price: 10000,
+                available_ticket: 10,
+            } as any;
+
+            const mockPurchase = {
+                _id: "66e7b9f675ab77f3a3a59727",
+                user_id: "66d6cf1ac4e8a50c0ead7875",
+                purchase_items: ["66e7b9f675ab77f3a3a5972a"],
+                total_price: 50000,
+            } as any;
+
+            jest.spyOn(eventService, "findTicketById").mockResolvedValue(mockTicket);
+            jest.spyOn(purchaseService, "findPurchaseByUserId").mockResolvedValue(mockPurchase);
+            jest.spyOn(purchaseService, "findExistingPurchaseItems").mockResolvedValue(null);
+
+            await expect(purchaseController.addTicketToPurchase(req, body)).rejects.toThrow(
+                new InternalServerErrorException("Not enough ticket available.")
+            )
+
+            expect(eventService.findTicketById).toHaveBeenCalledWith(body.ticket_id);
+            expect(purchaseService.findPurchaseByUserId).toHaveBeenCalledWith(user_id);
+            expect(purchaseService.findExistingPurchaseItems).toHaveBeenCalledWith(user_id, body.ticket_id);
+        })
+
+        it("should ticket add to purchase successfully.", async () => {
+            const user_id = "user123";
+            const req: any = {
+                user: { _id: user_id }
+            }
+            const body = { ticket_id: "ticket123", quantity: 5 };
+            const mockTicket = {
+                _id: "ticket123",
+                event_id: {
+                    _id: "event123",
+                    user_id: {
+                        _id: user_id,
+                        name: "user name"
+                    }
+                },
+                category: 'VIP',
+                price: 10000,
+                available_ticket: 10,
+                save: jest.fn().mockResolvedValue(true)
+            } as any;
+
+            const mockPurchase = {
+                _id: "66e7b9f675ab77f3a3a59727",
+                user_id: user_id,
+                purchase_items: [],
+                total_price: 0,
+                save: jest.fn().mockResolvedValue(true)
+            } as any;
+
+            const mockPurchaseItem = {
+                ticket_id:  "ticket123",
+                user_id: user_id,
+                quantity: body.quantity,
+                unit_price: 10000,
+                total_price: 50000,
+                _id: "66e7c266e9338962c886e4f9",
+                purchase_date: "2024 -09 - 16T05: 30: 14.368Z",
+                __v: 0
+            } as any;
+
+            jest.spyOn(eventService, "findTicketById").mockResolvedValue(mockTicket);
+            jest.spyOn(purchaseService, "findPurchaseByUserId").mockResolvedValue(mockPurchase);
+            jest.spyOn(purchaseService, "findExistingPurchaseItems").mockResolvedValue(null);
+            jest.spyOn(purchaseService, "createPurchaseItem").mockResolvedValue(mockPurchaseItem);
+
+            const result = await purchaseController.addTicketToPurchase(req, body);
+
+            expect(result).toEqual({
+                success: true, message: "Ticket added to purchase."
+            });
+
+            expect(eventService.findTicketById).toHaveBeenCalledWith(body.ticket_id);
+            expect(purchaseService.findPurchaseByUserId).toHaveBeenCalledWith(user_id);
+            expect(purchaseService.findExistingPurchaseItems).toHaveBeenCalledWith(user_id, body.ticket_id);
+            expect(purchaseService.createPurchaseItem).toHaveBeenCalledWith({
+                ticket_id: body.ticket_id,
+                quantity: body.quantity,
+                unit_price: mockTicket.price,
+                total_price: mockTicket.price * +body.quantity,
+                user_id: user_id
+            });
+        })
+    })
 
 })
